@@ -1,17 +1,22 @@
 const express = require('express');
 const app = express();
 const chess = require('./chess');
+const path = require('path');
+
+app.use(express.static(path.resolve(__dirname, 'public')));
 
 app.get('/player1/:move', (req, res) => {
   const move = req.params && req.params.move;
   chess.move(move);
 
   const debug = chess.debug();
+  const imagePath = chess.getImage();
 
   res.json({
     ok: true,
     move,
-    debug
+    debug,
+    imagePath
   });
 });
 
@@ -20,11 +25,13 @@ app.get('/player2/:move', (req, res) => {
   chess.move(move);
 
   const debug = chess.debug();
+  const imagePath = chess.getImage();
 
   res.json({
     ok: true,
     move,
-    debug
+    debug,
+    imagePath
   });
 });
 
