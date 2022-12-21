@@ -9,7 +9,10 @@ npm run dev
 - [X] have endpoint play a chess game
 - [X] generate image
 
+### Day 2
+- [ ] Create state machine for game
+
+### Backlog
 - [ ] integrate with texting service
 - [ ] think about how to initiate a new game
 - [ ] integrate with S3
-
