@@ -1,6 +1,6 @@
 /*
-- "white, waiting state" (game is waiting for a move from white player)
   -> "white play move" ({ move: algebraic notation })
+- "white, waiting state" (game is waiting for a move from white player)
     - if not valid move, "white, waiting state"
       - side effect, play error message
     - else, "white, move confirmation"
@@ -41,39 +41,109 @@ Do the same for Black
 // - actions
 // - XState (all XState exports)
 
-const fetchMachine = Machine({
-  id: "fetch",
-  initial: "whiteWaitingState",
-  context: {
-    result: null,
-    termination: null,
-    currentMove: null,
-  },
-  states: {
-    whiteWaitingState: {
-      on: {
-        resign: "whiteResignConfirmation",
-        playMove: [
-          {
-            cond: { type: "isValid" },
-            target: "whiteMoveConfirmation",
-          },
-          { target: "whiteWaitingState" },
-        ],
+const fetchMachine = Machine(
+  {
+    id: "fetch",
+    initial: "whiteWaitingState",
+    context: {
+      result: null,
+      termination: null,
+      currentMove: null,
+    },
+    states: {
+      whiteWaitingState: {
+        on: {
+          resign: "whiteResignConfirmation",
+          playMove: [
+            {
+              actions: "cacheCurrentMove",
+              cond: { type: "isValid" },
+              target: "whiteMoveConfirmation",
+            },
+            { target: "whiteWaitingState" },
+          ],
+        },
+      },
+
+      whiteResignConfirmation: {
+        on: {
+          confirm: "gameOver",
+          cancel: "whiteWaitingState",
+        },
+      },
+
+      whiteMoveConfirmation: {
+        on: {
+          confirm: [
+            {
+              cond: { type: "isCheckmate" },
+              target: "gameOver",
+            },
+            {
+              cond: { type: "isStalemate" },
+              target: "gameOver",
+            },
+            { target: "blackWaitingState" },
+          ],
+          cancel: "whiteWaitingState",
+        },
+      },
+
+      blackWaitingState: {
+        on: {
+          resign: "blackResignConfirmation",
+          playMove: [
+            {
+              actions: "cacheCurrentMove",
+              cond: { type: "isValid" },
+              target: "blackMoveConfirmation",
+            },
+            { target: "whiteWaitingState" },
+          ],
+        },
+      },
+
+      blackResignConfirmation: {
+        on: {
+          confirm: "gameOver",
+          cancel: "blackWaitingState",
+        },
+      },
+
+      blackMoveConfirmation: {
+        on: {
+          confirm: [
+            {
+              cond: { type: "isCheckmate" },
+              target: "gameOver",
+            },
+            {
+              cond: { type: "isStalemate" },
+              target: "gameOver",
+            },
+            { target: "whiteWaitingState" },
+          ],
+          cancel: "blackWaitingState",
+        },
+      },
+
+      gameOver: {
+        type: "final",
       },
     },
-
-    whiteResignConfirmation: {
-      on: {
-        confirm: "gameOver",
-        cancel: "whiteWaitingState",
-      },
-    },
-
-    whiteMoveConfirmation: {},
-
-    gameOver: {
-      type: "final",
-    },
   },
-});
+  {
+    guards: {
+      isValid: () => true,
+      isCheckmate: () => false,
+      isStalemate: () => false,
+    },
+    actions: {
+      cacheCurrentMove: assign((context, event) => {
+        return {
+          currentMove: event.move,
+        };
+      }),
+    },
+  }
+);
