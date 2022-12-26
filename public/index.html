@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <label for="chess-color">Choose a color:</label>
+  <select name="chess-color" class="js-chess-color">
+    <option value="white">White</option>
+    <option value="black">Black</option>
+  </select>
+
+  <form class="js-form">
+    <input type="text" class="js-input" placeholder="Enter input"/>
+    <input type="submit">
+  </form>
+
+  <script>
+    const $form = document.querySelector('.js-form');
+    const $chessColor = document.querySelector('.js-chess-color');
+    const $input = document.querySelector('.js-input');
+
+    $form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const side = getSide();
+      const input = getInput();
+
+      sendMessage({ side, input });
+    });
+
+    function getSide() {
+      return $chessColor.value;
+    }
+
+    function getInput() {
+      return $input.value;
+    }
+
+    const API_BASE_URL = 'http://localhost:8888';
+    function sendMessage(data) {
+      // console.log(data);
+      fetch(`${API_BASE_URL}/move`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      }).then(response => response.json())
+        .then(console.log);
+    }
+  </script>
+</body>
+</html>

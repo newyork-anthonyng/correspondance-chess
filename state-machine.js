@@ -1,60 +1,21 @@
-/*
-  -> "white play move" ({ move: algebraic notation })
-- "white, waiting state" (game is waiting for a move from white player)
-    - if not valid move, "white, waiting state"
-      - side effect, play error message
-    - else, "white, move confirmation"
-  -> "resign"
-    - "white, resign confirmation"
+const { createMachine, interpret, assign } = require("xstate");
+const chess = require("./chess");
 
-- "white, move confirmation" (game is waiting for white to confirm move)
-  -> "confirm"
-    - if checkmate, go to "game over"
-      - "game over" ({ result: "1-0", termination: "checkmate" })
-    - if stalemate, go to "game over"
-      - "game over" ({ result: "1/2 - 1/2", termination: "stalemate" })
-    - else, go to "black, waiting state"
-  -> "cancel"
-    - "white, waiting state"
-
-- "white, resign confirmation"
-  -> "confirm"
-    - "game over" ({ result: "0-1", termination: "resign" })
-  -> "cancel"
-    - "white, waiting state"
-
-Do the same for Black
-
-- "game over"
-  result: 1-0 | 0-1 | 1/2 - 1/2
-  termination: resign | checkmate | stalemate
-*/
-
-// Available variables:
-// - Machine
-// - interpret
-// - assign
-// - send
-// - sendParent
-// - spawn
-// - raise
-// - actions
-// - XState (all XState exports)
-
-const fetchMachine = Machine(
+const gameMachine = createMachine(
   {
-    id: "fetch",
+    id: "chess",
     initial: "whiteWaitingState",
     context: {
       result: null,
       termination: null,
       currentMove: null,
+      images: [],
     },
     states: {
       whiteWaitingState: {
         on: {
-          resign: "whiteResignConfirmation",
-          playMove: [
+          white_resign: "whiteResignConfirmation",
+          white_playMove: [
             {
               actions: "cacheCurrentMove",
               cond: { type: "isValid" },
@@ -67,14 +28,14 @@ const fetchMachine = Machine(
 
       whiteResignConfirmation: {
         on: {
-          confirm: "gameOver",
-          cancel: "whiteWaitingState",
+          white_confirm: "gameOver",
+          white_cancel: "whiteWaitingState",
         },
       },
 
       whiteMoveConfirmation: {
         on: {
-          confirm: [
+          white_confirm: [
             {
               cond: { type: "isCheckmate" },
               target: "gameOver",
@@ -83,16 +44,19 @@ const fetchMachine = Machine(
               cond: { type: "isStalemate" },
               target: "gameOver",
             },
-            { target: "blackWaitingState" },
+            {
+              actions: "playCurrentMove",
+              target: "blackWaitingState",
+            },
           ],
-          cancel: "whiteWaitingState",
+          white_cancel: "whiteWaitingState",
         },
       },
 
       blackWaitingState: {
         on: {
-          resign: "blackResignConfirmation",
-          playMove: [
+          black_resign: "blackResignConfirmation",
+          black_playMove: [
             {
               actions: "cacheCurrentMove",
               cond: { type: "isValid" },
@@ -105,14 +69,14 @@ const fetchMachine = Machine(
 
       blackResignConfirmation: {
         on: {
-          confirm: "gameOver",
-          cancel: "blackWaitingState",
+          black_confirm: "gameOver",
+          black_cancel: "blackWaitingState",
         },
       },
 
       blackMoveConfirmation: {
         on: {
-          confirm: [
+          black_confirm: [
             {
               cond: { type: "isCheckmate" },
               target: "gameOver",
@@ -121,9 +85,9 @@ const fetchMachine = Machine(
               cond: { type: "isStalemate" },
               target: "gameOver",
             },
-            { target: "whiteWaitingState" },
+            { actions: "playCurrentMove", target: "whiteWaitingState" },
           ],
-          cancel: "blackWaitingState",
+          black_cancel: "blackWaitingState",
         },
       },
 
@@ -134,7 +98,14 @@ const fetchMachine = Machine(
   },
   {
     guards: {
-      isValid: () => true,
+      isValid: (context, event) => {
+        const isMoveValid = chess.isMoveValid(event.move);
+        console.log("*******");
+        console.log(event);
+        console.log("isValid", isMoveValid);
+
+        return isMoveValid;
+      },
       isCheckmate: () => false,
       isStalemate: () => false,
     },
@@ -144,6 +115,14 @@ const fetchMachine = Machine(
           currentMove: event.move,
         };
       }),
+      playCurrentMove: (context, event) => {
+        chess.move(context.currentMove);
+        const image = chess.getImage();
+        context.images.push(image);
+      },
     },
   }
 );
+
+const gameService = interpret(gameMachine);
+module.exports = gameService;

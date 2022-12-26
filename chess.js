@@ -1,17 +1,35 @@
-const { Chess } = require('chess.js');
-const ChessImageGenerator = require('@newyork.anthonyng/chess-image-generator');
-const path = require('path');
+const { Chess } = require("chess.js");
+const ChessImageGenerator = require("@newyork.anthonyng/chess-image-generator");
+const path = require("path");
 
 class MyChessGame {
   constructor() {
     this.chess = new Chess();
     this.imageGenerator = new ChessImageGenerator();
-    this.moveCounter = 0;
+  }
+
+  isMoveValid(move) {
+    const legalMoves = this.chess.moves() || [];
+    const moveIndex = legalMoves.findIndex(
+      (currentMove) => currentMove.toLowerCase() === move.toLowerCase()
+    );
+
+    console.log("******");
+    console.log("is move valid");
+    console.log(moveIndex > -1);
+
+    return moveIndex > -1;
   }
 
   move(move) {
     if (move) {
-      this.chess.move(move);
+      const result = this.chess.move(move);
+      console.log("************");
+      console.log("given move", move);
+      console.log(result);
+      if (!result) {
+        throw new Error("Whoops. Move did not work");
+      }
     }
   }
 
@@ -28,7 +46,7 @@ class MyChessGame {
       this.imageGenerator.highlightSquares([from, to]);
     }
 
-    const imagePath = `public/images/${this.moveCounter++}.png`;
+    const imagePath = `public/images/${history.length}.png`;
     this.imageGenerator.generatePNG(path.resolve(__dirname, imagePath));
 
     return imagePath;
